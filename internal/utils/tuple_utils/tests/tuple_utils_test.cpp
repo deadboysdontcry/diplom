@@ -45,9 +45,15 @@ void TestGetFirstNEIdx() {
     ASSERT(idx = 2);
 }
 
+void TestPrintFirstK() {
+    auto t = std::make_tuple("a", 1, 2, 1.0);
+    nTupleUtils::PrintFirstK(t, 2, std::cout);
+}
+
 int main() {
     TestRunner tr;
     RUN_TEST(tr, TestParseIntoTuple);
     RUN_TEST(tr, TestCutByIndexes);
     RUN_TEST(tr, TestGetFirstNEIdx);
+    RUN_TEST(tr, TestPrintFirstK);
 }

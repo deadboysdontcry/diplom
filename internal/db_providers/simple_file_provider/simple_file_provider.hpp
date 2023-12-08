@@ -1,6 +1,6 @@
 #pragma once
 
-#include "row.hpp"
+#include "../row.hpp"
 #include "../../utils/tuple_utils/tuple_utils.hpp"
 
 #include <string>
@@ -15,12 +15,15 @@ template<typename Tuple, typename KeysIndexes, typename ValuesIndexes>
 class Provider {
  public:
 
-   typedef Row<Tuple, KeysIndexes, ValuesIndexes> RowType;
+   using value_type = Row<Tuple, KeysIndexes, ValuesIndexes>;
 
-   Provider(std::string filePath, char rowDelimetr) : source_(filePath), rowDelimetr_(rowDelimetr) {
+   Provider() = default;
+   Provider(const Provider& p) : filePath_(p.filePath_), rowDelimetr_(p.rowDelimetr_), source_(filePath_){
+   }
+   Provider(std::string filePath, char rowDelimetr) : source_(filePath), rowDelimetr_(rowDelimetr), filePath_(filePath)  {
    }
 
-   std::optional<RowType> GetNextRow() {
+   std::optional<Row<Tuple, KeysIndexes, ValuesIndexes>> GetNextRow() {
       if (!HasNext()) {
          return {};
       }
@@ -30,17 +33,14 @@ class Provider {
       return Row<Tuple, KeysIndexes, ValuesIndexes>(std::move(tuple));
    } 
 
-   bool HasNext() {
-      return !source_.eof();
-   }
-
-   void Reset() {
-      source_.seekg(0, std::ios::beg);
+   bool HasNext() const {
+      return !source_.eof() && source_.is_open();
    }
 
  private:
-    std::ifstream source_;   
-    char rowDelimetr_;
+   std::string filePath_;
+   std::ifstream source_;
+   char rowDelimetr_;
 };
 
 }

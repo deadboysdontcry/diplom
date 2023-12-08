@@ -1,0 +1,36 @@
+all values with keys eual: 0|1|
+have aggregate vallue: 0|3|
+
+all values with keys eual: 0|2|
+have aggregate vallue: 2|0|
+
+all values with keys eual: 0|3|
+have aggregate vallue: 0|2|
+
+all values with keys eual: 0|x|
+have aggregate vallue: 0|0|
+
+all values with keys eual: 2|2|
+have aggregate vallue: 2|3|
+
+all values with keys eual: 2|3|
+have aggregate vallue: 1|0|
+
+all values with keys eual: 2|x|
+have aggregate vallue: 1|0|
+
+all values with keys eual: 3|0|
+have aggregate vallue: 3|1|
+
+all values with keys eual: 3|2|
+have aggregate vallue: 0|3|
+
+all values with keys eual: 3|3|
+have aggregate vallue: 2|1|
+
+all values with keys eual: 3|x|
+have aggregate vallue: 0|1|
+
+all values with keys eual: x|x|
+have aggregate vallue: 0|0|
+

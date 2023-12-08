@@ -6,6 +6,7 @@
 #include <ranges>
 #include <iostream>
 #include <tuple>
+#include <ostream>
 
 namespace nTupleUtils {
 
@@ -109,11 +110,28 @@ namespace nTupleUtils {
     }
 //////////////////////////////////////////
     template <std::size_t I = 0, typename Tuple>
-    void PrintTuple(const Tuple& t) {
+    void PrintTuple(const Tuple& t, std::ostream& out) {
     if constexpr (I < std::tuple_size_v<Tuple>) {
-        std::cout << std::get<I>(t) << ' ';
-        PrintTuple<I + 1>(t);
+        out << std::get<I>(t) << '|';
+        PrintTuple<I + 1>(t, out);
     }
+}
+///////////////////////////////////////////
+
+template <std::size_t I = 0, typename Tuple>
+void PrintFirstHelper(const Tuple& t, std::size_t k, std::ostream& out) {
+    if constexpr (I < std::tuple_size_v<Tuple>) {
+        if (I < k) {
+            out <<  std::get<I>(t) << "|";
+            PrintFirstHelper<I + 1>(t, k, out);
+        }
+    }
+}
+
+// Функция для печати первых k элементов кортежа
+template <typename... Args>
+void PrintFirstK(const std::tuple<Args...>& t, std::size_t k, std::ostream& out) {
+    PrintFirstHelper(t, k, out);
 }
 
 }

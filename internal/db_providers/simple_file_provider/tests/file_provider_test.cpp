@@ -9,7 +9,7 @@ void TestCompile() {
     typedef nTupleUtils::TupleIndexes<2, 3> ValuesIndexes;
     
     auto prov = nSimpleDBFileProvider::Provider<RowType, KeysIndexes, ValuesIndexes>("file.txt", '|');
-
+    std::vector<int>::iterator t;
     while (prov.HasNext()) {
         auto row = prov.GetNextRow();
         auto keys = row->GetKeys();
