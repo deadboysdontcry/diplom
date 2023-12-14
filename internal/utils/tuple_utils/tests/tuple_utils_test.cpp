@@ -10,11 +10,11 @@ struct TempStruct {
         TempStruct t;
         t.str = s;
         return t;
-    }   
+    }
     friend bool operator==(const TempStruct& t1, const TempStruct& t2) {
         return t1.str == t2.str;
     }
-    std::string str; 
+    std::string str;
 };
 
 void TestParseIntoTuple() {
@@ -31,16 +31,16 @@ void TestParseIntoTuple() {
 
 void TestCutByIndexes() {
     auto t = std::make_tuple("a", 1, 2, 1.0);
-    auto expected1 = std::make_tuple(1,2);
+    auto expected1 = std::make_tuple(1, 2);
     auto expected2 = std::make_tuple("a", 1.0);
-    auto actual1 = nTupleUtils::CutByIndexes<nTupleUtils::TupleIndexes<1,2>>::Do(t);
-    auto actual2 = nTupleUtils::CutByIndexes<nTupleUtils::TupleIndexes<0,3>>::Do(t);
+    auto actual1 = nTupleUtils::CutByIndexes<nTupleUtils::TupleIndexes<1, 2>>::Do(t);
+    auto actual2 = nTupleUtils::CutByIndexes<nTupleUtils::TupleIndexes<0, 3>>::Do(t);
     ASSERT(actual1 == expected1);
     ASSERT(actual2 == expected2);
 }
 
 void TestGetFirstNEIdx() {
-    auto f1 = make_tuple(1,2,3), f2 = make_tuple(1,2,1);
+    auto f1 = make_tuple(1, 2, 3), f2 = make_tuple(1, 2, 1);
     auto idx = nTupleUtils::GetFirstNEIdx(f1, f2);
     ASSERT(idx = 2);
 }

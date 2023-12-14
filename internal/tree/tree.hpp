@@ -11,35 +11,17 @@
 
 template <typename Tuple, typename KeysIndexes, typename ValuesIndexes, ProviderConcept<Tuple, KeysIndexes, ValuesIndexes> Provider>
 class Tree {
-
 public:
+    typedef nSimpleDBFileProvider::Record<Tuple, KeysIndexes, ValuesIndexes> RecordType;
+    typedef typename RecordType::ValueType ValueType;
+    typedef typename RecordType::KeysType KeysType;
 
-    typedef nSimpleDBFileProvider::Row<Tuple, KeysIndexes, ValuesIndexes> RowType;
-    typedef typename RowType::ValueType ValueType;
-    typedef typename RowType::KeysType KeysType;
+
     class Iterator {
-     private:
-        Iterator(const Provider& p, const Tree* const t) : provider(p), t(t) {
-            curState.level = 0;
-            if (provider.HasNext()) {
-                curRow = *provider.GetNextRow();
-                while(curState.level <= maxLevel) {
-                    if (curState.level == maxLevel) {
-                        curState.row = curRow;
-                    }
-                    context.push_back(curState);
-                    ++curState.level;
-                }
-            }
-        }
-
-        Iterator(const Tree* const t) : t(t) {
-        }
-     public:
-
+    private:
         struct State {
             int64_t level;
-            std::optional<RowType> row;
+            RecordType row;
 
             bool operator==(const State& s2) const {
                 return level == s2.level;
@@ -48,18 +30,34 @@ public:
             bool operator!=(const State& s2) const {
                 return !(*this == s2);
             }
-
         };
 
-        Iterator& operator++() {
+        Iterator(const Provider& p, const Tree* const t)
+            : provider(p)
+            , t(t)
+        {
+            curState.level = 0;
+            if (provider.HasNext()) {
+                curRow = *provider.GetNextRow();
+                TryGoDeep();
+            }
+        }
 
-            while(curState.level <= maxLevel) {
-                if (curState.level == maxLevel) {
-                        curState.row = curRow;
-                }
+        Iterator(const Tree* const t)
+            : t(t)
+        {
+        }
+
+        void TryGoDeep() {
+            while (curState.level <= maxLevel) {
+                curState.row = curRow;
                 context.push_back(curState);
                 ++curState.level;
-            }    
+            }
+        }
+
+        void MakeStep() {
+            TryGoDeep();
             if (context.empty()) {
                 throw std::out_of_range("out of range");
             }
@@ -67,52 +65,56 @@ public:
             curState = context.back();
             context.pop_back();
 
-            if (curState.level == maxLevel) { // leave 
-
+            if (curState.level == maxLevel) { // leave
                 if (!provider.HasNext()) {
                     curState.level = maxLevel + 1;
                     k = -1;
                 } else {
-
                     nextRow = *provider.GetNextRow();
-
-                    if (curState.row != std::nullopt) {
-                        k = nTupleUtils::GetFirstNEIdx(curState.row->GetRaw(), nextRow.GetRaw());
-                        if (k == maxLevel) {
-                            curRow = nextRow;
-                        } else {
-                            curState.level = maxLevel + 1; 
-                        }
-                    } else {
+                    k = nTupleUtils::GetFirstNEIdx(curState.row.GetRaw(), nextRow.GetRaw());
+                    if (k == maxLevel) {
                         curRow = nextRow;
+                    } else {
+                        curState.level = maxLevel + 1;
                     }
                 }
             } else {
                 if (curState.level == k) {
                     curRow = nextRow;
-                    while(curState.level <= maxLevel) {
-                        if (curState.level == maxLevel) {
-                                curState.row = curRow;
-                        }
-                        context.push_back(curState);
-                        ++curState.level;
-                    }    
+                    TryGoDeep();
                 } else {
                     curState.level = maxLevel + 1;
                 }
             }
+        }
+
+        bool IsValidState() {
+            if (context.empty()) { // equals to .end()
+                return true;
+            }
+            if (IsLeave()) {
+                return true;
+            }
+            if (context.back().level != k) { // is inner
+                return true;
+            }
+            return false;
+        }
+
+    public:
+        Iterator& operator++() {
+            MakeStep();
+            while (!IsValidState()) {
+                MakeStep();
+            }
             return *this;
         }
 
-        State GetState() const {
+        const RecordType& GetState() const {
             if (context.size() == 0 && !provider.HasNext()) {
                 throw std::out_of_range("end iter dereference");
-            }    
-            return context.back();
-        }
-
-        RowType LastRow() {
-            return curRow;
+            }
+            return context.back().row;
         }
 
         bool operator==(const Iterator& it) const {
@@ -123,38 +125,35 @@ public:
             return !(*this == it);
         }
 
-        size_t GetLevel() {
-            if (context.size() != 0) {
-                return context.back().level;
-            }
-            return -1;
-        }
-
-        bool IsSubtreeDone() {
+        bool IsLeave() {
             if (context.empty()) {
+                return false;
+            }
+            if (context.back().level == maxLevel) {
                 return true;
             }
-
-            return context.back().level != k && context.back().level != maxLevel;
+            return false;
         }
 
-     private:
+        int GetLevel() const {
+            return context.back().level;
+        }
+
+    private:
         friend Tree;
         const Tree* const t;
         Provider provider;
-        int64_t maxLevel = std::tuple_size_v<typename RowType::KeysType> + 1;
+        int64_t maxLevel = std::tuple_size_v<typename RecordType::KeysType> + 1;
         State curState;
-        RowType nextRow;
-        RowType curRow;
+        RecordType nextRow;
+        RecordType curRow;
         std::vector<State> context;
         int k;
     };
 
-
- public:
-
-    size_t GetLevelsCount() {
-        return std::tuple_size_v<typename RowType::KeysType> + 1;
+public:
+    constexpr size_t GetLevelsCount() {
+        return std::tuple_size_v<typename RecordType::KeysType> + 2;
     }
 
     Iterator begin() {
@@ -164,10 +163,11 @@ public:
     Iterator end() {
         return Iterator(this);
     }
-    
-    Tree(Provider p) : baseProvider(p) {
-    }
 
+    Tree(Provider p)
+        : baseProvider(p)
+    {
+    }
 
 private:
     Provider baseProvider;

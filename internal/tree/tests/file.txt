@@ -1,9 +1,9 @@
-0|1|0|3
-0|2|2|0
-0|3|0|2
-2|2|2|3
-2|3|1|0
-2|3|3|2
-3|0|3|1
-3|2|0|3
-3|3|2|1
+belarus|minskaya oblast'|dzerzhinsk|5000|60.2
+belarus|minskaya oblast'|molodechno|100000|61.2
+belarus|minskaya oblast'|molodechno|90000|62.2
+belarus|minskaya oblast'|borisov|75000|55
+belarus|minskaya oblast'|borisov|73000|54.4
+belarus|brestskaya oblast'|baranovichi|175000|66
+belarus|brestskaya oblast'|baranovichi|173000|65.5
+russia|moskovskaya oblast'|luberci|230000|55
+russia|moskovskaya oblast'|podolsk|312000|57

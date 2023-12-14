@@ -1,13 +1,11 @@
 #include "../../../../testrunner/test_runner.h"
 #include "../simple_file_provider.hpp"
 
-
-
 void TestCompile() {
     typedef std::tuple<int, int, int, std::string> RowType;
-    typedef nTupleUtils::TupleIndexes<0,1> KeysIndexes;
+    typedef nTupleUtils::TupleIndexes<0, 1> KeysIndexes;
     typedef nTupleUtils::TupleIndexes<2, 3> ValuesIndexes;
-    
+
     auto prov = nSimpleDBFileProvider::Provider<RowType, KeysIndexes, ValuesIndexes>("file.txt", '|');
     std::vector<int>::iterator t;
     while (prov.HasNext()) {

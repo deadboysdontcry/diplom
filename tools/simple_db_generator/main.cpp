@@ -12,7 +12,7 @@ int rowsCount = 10;
 int maxValue = 10;
 std::string outputPath = std::filesystem::current_path() / "output.db.txt";
 
-using randomIntGenerator = std::uniform_int_distribution<std::mt19937::result_type>; 
+using randomIntGenerator = std::uniform_int_distribution<std::mt19937::result_type>;
 
 void printHelp() {
     std::cout << "cli for generating \"db\" files\n";
@@ -24,7 +24,7 @@ void printHelp() {
     std::cout << "  --output_path={path}     : set output path to {path}\n";
 }
 
-std::map<std::string, std::string> parseArguments(int argc, char *argv[]) {
+std::map<std::string, std::string> parseArguments(int argc, char* argv[]) {
     std::map<std::string, std::string> arguments;
     for (int i = 1; i < argc; ++i) {
         std::string argument = argv[i];
@@ -41,15 +41,15 @@ std::map<std::string, std::string> parseArguments(int argc, char *argv[]) {
 }
 
 std::vector<int> GenerateRow(randomIntGenerator& generator, std::mt19937& rng) {
-  std::vector<int> ret;
-  for(int i = 0; i < columnsCount; ++i) {
+    std::vector<int> ret;
+    for (int i = 0; i < columnsCount; ++i) {
+        ret.emplace_back(generator(rng));
+    }
     ret.emplace_back(generator(rng));
-  }
-  ret.emplace_back(generator(rng));
-  return ret;
+    return ret;
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     std::map<std::string, std::string> arguments = parseArguments(argc, argv);
 
     if (auto it = arguments.find("--help"); it != arguments.end()) {
@@ -67,37 +67,36 @@ int main(int argc, char *argv[]) {
         maxValue = std::stoi(it->second);
     }
     if (auto it = arguments.find("--output_path"); it != arguments.end()) {
-        outputPath =it->second;
+        outputPath = it->second;
     }
 
     std::random_device dev;
     std::mt19937 rng(dev());
-    randomIntGenerator generator(0, maxValue); 
-    
+    randomIntGenerator generator(0, maxValue);
 
     std::vector<std::vector<int>> rows;
-    for(int i = 0; i < rowsCount; ++i) {
-      rows.emplace_back(GenerateRow(generator, rng));
+    for (int i = 0; i < rowsCount; ++i) {
+        rows.emplace_back(GenerateRow(generator, rng));
     }
-    std::ranges::sort(rows);
+    std::sort(rows.begin(), rows.end());
 
     std::ofstream out(outputPath);
     bool firstRow{true};
     for (const auto& row : rows) {
         if (!firstRow) {
-          out << "\n";
+            out << "\n";
         }
         bool firstEl{true};
-        for (auto el: row) {
-          if (!firstEl) {
-            out << "|";
-          }
-          out << el;
-          firstEl = false;
+        for (auto el : row) {
+            if (!firstEl) {
+                out << "|";
+            }
+            out << el;
+            firstEl = false;
         }
         firstRow = false;
     }
     out.close();
-  
+
     return 0;
 }

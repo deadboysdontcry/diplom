@@ -11,36 +11,41 @@
 
 namespace nSimpleDBFileProvider {
 
-template<typename Tuple, typename KeysIndexes, typename ValuesIndexes>
-class Provider {
- public:
+    template <typename Tuple, typename KeysIndexes, typename ValuesIndexes>
+    class Provider {
+    public:
+        Provider() = default;
+        Provider(const Provider& p)
+            : filePath_(p.filePath_)
+            , rowDelimetr_(p.rowDelimetr_)
+            , source_(filePath_)
+        {
+        }
+        Provider(std::string filePath, char rowDelimetr)
+            : source_(filePath)
+            , rowDelimetr_(rowDelimetr)
+            , filePath_(filePath)
+        {
+        }
 
-   using value_type = Row<Tuple, KeysIndexes, ValuesIndexes>;
+        std::optional<Record<Tuple, KeysIndexes, ValuesIndexes>> GetNextRow() {
+            if (!HasNext()) {
+                return {};
+            }
+            std::string line;
+            std::getline(source_, line, '\n');
+            auto tuple = nTupleUtils::ParseIntoTuple<Tuple>(line, rowDelimetr_);
+            return Record<Tuple, KeysIndexes, ValuesIndexes>(std::move(tuple));
+        }
 
-   Provider() = default;
-   Provider(const Provider& p) : filePath_(p.filePath_), rowDelimetr_(p.rowDelimetr_), source_(filePath_){
-   }
-   Provider(std::string filePath, char rowDelimetr) : source_(filePath), rowDelimetr_(rowDelimetr), filePath_(filePath)  {
-   }
+        bool HasNext() const {
+            return !source_.eof() && source_.is_open();
+        }
 
-   std::optional<Row<Tuple, KeysIndexes, ValuesIndexes>> GetNextRow() {
-      if (!HasNext()) {
-         return {};
-      }
-      std::string line;
-      source_ >> line;
-      auto tuple = nTupleUtils::ParseIntoTuple<Tuple>(line, rowDelimetr_);
-      return Row<Tuple, KeysIndexes, ValuesIndexes>(std::move(tuple));
-   } 
-
-   bool HasNext() const {
-      return !source_.eof() && source_.is_open();
-   }
-
- private:
-   std::string filePath_;
-   std::ifstream source_;
-   char rowDelimetr_;
-};
+    private:
+        std::string filePath_;
+        std::ifstream source_;
+        char rowDelimetr_;
+    };
 
 }

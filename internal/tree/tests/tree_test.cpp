@@ -2,52 +2,63 @@
 #include "../tree.hpp"
 #include "../tree_handler.hpp"
 
-void TestCorrectness() {
-    typedef std::tuple<int, int, int, int> RowType;
-    typedef nTupleUtils::TupleIndexes<0,1> KeysIndexes;
-    typedef nTupleUtils::TupleIndexes<2,3> ValuesIndexes;
+int main() {
+    // Тип записи, тип ключа, тип значения
+    typedef std::tuple<std::string, std::string, std::string, int, float> RawRecordType;
+    typedef nTupleUtils::TupleIndexes<0, 1, 2> KeysIndexes;
+    typedef nTupleUtils::TupleIndexes<3, 4> ValuesIndexes;
+
+    // provider - класс, который предоставляет последовательный доступ к каждой записи
+    nSimpleDBFileProvider::Provider<RawRecordType, KeysIndexes, ValuesIndexes> provider("file.txt", '|');
+
+    auto tree = Tree<RawRecordType, KeysIndexes, ValuesIndexes, decltype(provider)>(provider);
 
 
-    nSimpleDBFileProvider::Provider<RowType, KeysIndexes, ValuesIndexes> provider("file.txt", '|');
+    auto neutralElement = make_tuple<int, float>(0, 0.);
 
-    auto tree = Tree<RowType, KeysIndexes, ValuesIndexes, decltype(provider)>(provider);
-    for(auto it = tree.begin(); it != tree.end(); ++it) {
-        if (it.GetState().row.has_value()) {
-            nTupleUtils::PrintTuple(it.GetState().row->GetRaw(), std::cout);
-            std::cout << std::endl;
+    // функция для объединения внутренних значений
+    auto innerJoiner = [neutralElement](const std::tuple<int, float>& lhs, const std::tuple<int, float>& rhs) {
+        if (lhs == neutralElement) {
+            return std::make_tuple(std::get<0>(rhs), std::get<1>(rhs));
+        }
+        if (rhs == neutralElement) {
+            return std::make_tuple(std::get<0>(lhs), std::get<1>(lhs));
+        }
+        auto averagePeopleCnt = (std::get<0>(lhs) + std::get<0>(rhs));
+        auto averageLifeTime = std::get<0>(lhs) * std::get<1>(lhs) / averagePeopleCnt + std::get<0>(rhs) * std::get<1>(rhs) / averagePeopleCnt;
+        return std::make_tuple(averagePeopleCnt, averageLifeTime);
+    };
+
+    // функция для объединения листовых значений
+    auto leafeJoiner = [neutralElement, innerJoiner](const std::tuple<int, float>& lhs, const std::tuple<int, float>& rhs) {
+        if (lhs == neutralElement) {
+            return std::make_tuple(std::get<0>(rhs), std::get<1>(rhs));
+        }
+        if (rhs == neutralElement) {
+            return std::make_tuple(std::get<0>(lhs), std::get<1>(lhs));
+        }
+        auto toRet = innerJoiner(lhs, rhs);
+        std::get<0>(toRet) = std::get<0>(toRet) / 2;
+        return toRet;
+    };
+
+    std::array<std::tuple<int, float>, tree.GetLevelsCount()> arr;
+    std::fill(arr.begin(), arr.end(), neutralElement);
+    // сам алгоритм
+    // итерируемся по вершинам дерева
+    for (auto it = tree.begin(); it != tree.end(); ++it) {
+        auto curLevel = it.GetLevel();
+        if (it.IsLeave()) {
+            arr[curLevel] = leafeJoiner(arr[curLevel], it.GetState().GetValues());
         } else {
-            std::cout << it.GetState().level << std::endl;
+            nTupleUtils::PrintFirstK(it.GetState().GetKeys(), curLevel, std::cout);
+            std::cout << std::endl;
+            nTupleUtils::PrintTuple(arr[curLevel + 1], std::cout);
+            std::cout << std::endl;
+            std::cout << std::endl;
+
+            arr[curLevel] = innerJoiner(arr[curLevel], arr[curLevel + 1]);
+            arr[curLevel + 1] = neutralElement;
         }
     }
-
-    auto treeHandler = TreeHandler(tree);
-
-    auto sumValueJoiner = [](const std::tuple<int, int>& f, const std::tuple<int, int>& s) {
-        auto first = std::get<0>(f) + std::get<0>(s);
-        auto second = std::get<1>(f) + std::get<1>(s);
-        return std::make_tuple(first, second);
-    };
-    auto sumNE = std::make_tuple(0, 0);
-    treeHandler.CalculateAndCollectResultsInFile("sum_result.txt", sumValueJoiner, sumNE);
-
-    auto multValueJoiner = [](const std::tuple<int, int>& f, const std::tuple<int, int>& s) {
-        auto first = std::get<0>(f) * std::get<0>(s);
-        auto second = std::get<1>(f) * std::get<1>(s);
-        return std::make_tuple(first, second);
-    };
-    auto multNE = std::make_tuple(1, 1);
-    treeHandler.CalculateAndCollectResultsInFile("mult_result.txt", multValueJoiner, multNE);
-
-    auto minValueJoiner = [](const std::tuple<int, int>& f, const std::tuple<int, int>& s) {
-        auto first = std::min(std::get<0>(f), std::get<0>(s));
-        auto second = std::min(std::get<1>(f),std::get<1>(s));
-        return std::make_tuple(first, second);
-    };
-    auto minNE = std::make_tuple(1e9, 1e9);
-    treeHandler.CalculateAndCollectResultsInFile("min_result.txt", minValueJoiner, minNE);
-}
-
-int main() {
-    TestRunner tr;
-    RUN_TEST(tr, TestCorrectness);
 }
